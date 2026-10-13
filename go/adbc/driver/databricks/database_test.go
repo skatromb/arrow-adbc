@@ -125,3 +125,25 @@ func TestDefaultConnectTimeout(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, DefaultConnectTimeout.String(), got)
 }
+
+func TestDefaultQueryRetryCount(t *testing.T) {
+	info := driverbase.DefaultDriverInfo("Databricks")
+	drvBase := driverbase.NewDriverImplBase(info, memory.DefaultAllocator)
+	dbBase, err := driverbase.NewDatabaseImplBase(context.Background(), &drvBase)
+	require.NoError(t, err)
+
+	fresh := newDatabaseImpl(dbBase)
+	assert.Equal(t, unsetQueryRetryCount, fresh.queryRetryCount)
+	fresh.serverHostname, fresh.httpPath, fresh.accessToken, fresh.authType = "h", "/p", "t", OptionValueAuthTypePAT
+	freshOpts, err := fresh.resolveConnectionOptions()
+	require.NoError(t, err)
+
+	explicit := newDatabaseImpl(dbBase)
+	explicit.serverHostname, explicit.httpPath, explicit.accessToken, explicit.authType = "h", "/p", "t", OptionValueAuthTypePAT
+	require.NoError(t, explicit.SetOption(OptionQueryRetryCount, "0"))
+	explicitOpts, err := explicit.resolveConnectionOptions()
+	require.NoError(t, err)
+
+	assert.Equal(t, len(freshOpts)+1, len(explicitOpts),
+		"an explicit retry count adds a WithRetries option; an unset one does not")
+}

@@ -141,6 +141,16 @@ func NewDriver(alloc memory.Allocator) adbc.Driver {
 	})
 }
 
+func newDatabaseImpl(base driverbase.DatabaseImplBase) *databaseImpl {
+	return &databaseImpl{
+		DatabaseImplBase: base,
+		port:             DefaultPort,
+		sslMode:          DefaultSSLMode,
+		connectTimeout:   DefaultConnectTimeout,
+		queryRetryCount:  unsetQueryRetryCount,
+	}
+}
+
 func (d *driverImpl) NewDatabase(opts map[string]string) (adbc.Database, error) {
 	return d.NewDatabaseWithContext(context.Background(), opts)
 }
@@ -151,12 +161,7 @@ func (d *driverImpl) NewDatabaseWithContext(ctx context.Context, opts map[string
 		return nil, err
 	}
 
-	db := &databaseImpl{
-		DatabaseImplBase: dbBase,
-		port:             DefaultPort,
-		sslMode:          DefaultSSLMode,
-		connectTimeout:   DefaultConnectTimeout,
-	}
+	db := newDatabaseImpl(dbBase)
 
 	if err := db.SetOptions(opts); err != nil {
 		return nil, err
